@@ -13,8 +13,7 @@ with open('github.cfg') as f:
     conf = yaml.load(f, Loader=yaml.FullLoader)
 log.info("Config loaded")
 github_client = github.Github(
-    conf['api_token'],
-    user_agent='agent')
+    conf['api_token'])
 summary = []
 repos = []
 table_rows = []
@@ -27,8 +26,7 @@ class RepoIssues:
         self.count = count
 
 
-def fetch_issues_by_repo(github_client, repo_name):
-    repo = github_client.get_repo(repo_name)
+def fetch_issues_by_repo(repo):
     week_before = datetime.today() + timedelta(days=-14)
     res = repo.get_issues(state='all', since=week_before, sort='updated', direction='desc')
     for item in res:
@@ -140,11 +138,11 @@ if 'repositories' in conf:
                   "<th>description</th>" \
                   "</tr>"
     log.debug("Using configured repository list")
-    for repo_details in conf['repositories']:
-        repo_name = repo_details['repository']
-        log.debug("trying repository: %s" % repo_name)
-        items = fetch_issues_by_repo(github_client, repo_name)
-        summary.append(items)
+    for org_details in conf['orgs']:
+        org = github_client.get_organization(org_details['org'])
+        for repo in org.get_repos():
+            items = fetch_issues_by_repo(repo)
+            summary.append(items)
     email_html += generate_summary(sort_issue(summary))
 email_html += "</table>"
 smtp_conf = {'host': 'smtp.office365.com',
