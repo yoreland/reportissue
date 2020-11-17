@@ -1,3 +1,4 @@
+
 import emails
 from datetime import datetime, timedelta
 import github
@@ -170,8 +171,6 @@ def pretty_date(time=False):
 
 def generate_summary(summaries, state):
     table_body = ""
-    if os.path.exists('./daily.csv'):
-        os.remove('./daily.csv')
     try:
         for item in summaries:
             table_body += generate_table_row(item, state)
@@ -281,27 +280,14 @@ def printsum1():
 
 def getHtmlSummary():
     global email_html
-    if 'repositories' in conf:
-        email_html += "<table style='color:black;border:0;background-color: rgb(204, 204, 204);width=500px;line-height:20px' cellspacing='1' cellpadding='4'><tr style='color:white;background-color:#1194ff;font-weight:900'><th>Repository</th>" \
-                      "<th>state</th>" \
-                      "<th>reporter</th>" \
-                      "<th>create time</th>" \
-                      "<th>last update</th>" \
-                      "<th>last modifier</th>" \
-                      "<th>title</th>" \
-                      "<th>description</th>" \
-                      "</tr>"
-        log.debug("Using configured repository list")
-        for org_details in conf['orgs']:
-            org = github_client.get_organization(org_details['org'])
-            for repo in org.get_repos():
-                fetch_issues_by_repo(repo)
-                # items = fetch_issues_by_repo_need_reply(repo)
-                # summary.append(items)
-        # email_html += generate_summary(sort_issue(summary))
-        email_html += generate_weekly_report()
-        email_html += generate_bug_report()
-        return email_html
+    email_html = ""
+    for org_details in conf['orgs']:
+        org = github_client.get_organization(org_details['org'])
+        for repo in org.get_repos():
+            fetch_issues_by_repo(repo)
+    email_html += generate_weekly_report()
+    email_html += generate_bug_report()
+    return email_html
 
 if __name__ == "__main__":
     send_email(getHtmlSummary())
