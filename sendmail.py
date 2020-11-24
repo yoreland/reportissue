@@ -128,7 +128,7 @@ def sort_issue(repos_issues):
                 if item.comments > 0:
                     item.owner = item.get_comments()[item.comments - 1].user.login
                 res.append(item)
-    return sorted(res, key=lambda issue_obj: (issue_obj.state, issue_obj.created_at.timestamp()), reverse=True)
+    return sorted(res, key=lambda issue_obj: (issue_obj.state, issue_obj.updated_at.timestamp()), reverse=True)
 
 
 def pretty_date(time=False):
