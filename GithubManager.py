@@ -20,7 +20,7 @@ github_client = github.Github(
     user_agent='agent')
 
 # consts
-DAYS_BEFORE_TO_FETCH = 38
+DAYS_BEFORE_TO_FETCH = 7
 
 # variants
 summary = []
@@ -66,7 +66,7 @@ def count_sla_by_repo(repo):
     since_date = datetime.today() + timedelta(days=-DAYS_BEFORE_TO_FETCH)
     issues_new = repo.get_issues(state='all', since=since_date)
     for issue in issues_new:
-        if not issue.pull_request and issue.created_at.month == 1:
+        if not issue.pull_request:
             create_time = issue.created_at
             replay_time = 0
             index = 0
@@ -89,7 +89,7 @@ def count_close_issues_by_repo(repo):
     issues_new = repo.get_issues(state='all', since=three_month_before)
     count = 0
     for issue in issues:
-        if not issue.pull_request and issue.created_at.month == 1:
+        if not issue.pull_request:
             for comment in issue.get_comments():
                 count += 1
                 break
@@ -98,7 +98,7 @@ def count_close_issues_by_repo(repo):
     count_new = 0
     count_reply = 0
     for issue in issues_new:
-        if not issue.pull_request and issue.created_at.month == 1:
+        if not issue.pull_request:
             if issue.state != "closed":
                 count_new += 1
             for comment in issue.get_comments():
