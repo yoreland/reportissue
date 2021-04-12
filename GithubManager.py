@@ -36,7 +36,6 @@ issue_total_count = 0
 issue_sla_total_hour = 0
 
 
-
 def filter_labels(res2):
     res = []
     for item in res2:
@@ -49,7 +48,7 @@ def filter_labels(res2):
 
 def fetch_issues_by_repo(repo_name):
     repo = github_client.get_repo(repo_name.full_name)
-    two_week_before = datetime.today() + timedelta(days=-14)
+    two_week_before = datetime.today() + timedelta(days=-30)
     one_year_before = datetime.today() + timedelta(days=-365)
     res1 = repo.get_issues(state='all', since=two_week_before, sort='updated', direction='desc')
     res2 = repo.get_issues(since=one_year_before, sort='updated', direction='desc')
@@ -59,6 +58,29 @@ def fetch_issues_by_repo(repo_name):
         item.repo = repo.full_name
     summary.append(res1)
     bug_summary.append(filter_labels(res2))
+
+
+def fetch_unhandled_issues_by_repo(repo):
+    global issue_sla_count, issue_total_count
+    since_date = datetime.today() + timedelta(days=-DAYS_BEFORE_TO_FETCH)
+    issues_new = repo.get_issues(state='open', since=since_date)
+    for issue in issues_new:
+        if not issue.pull_request:
+            issue_total_count = issue_total_count + 1
+            create_time = issue.created_at
+            replay_time = 0
+            index = 0
+            for comment in issue.get_comments():
+                index = 1
+                replay_time = comment.created_at
+                break
+            if index == 0:
+                summary.append(issue)
+            if index > 0:
+                delta_hour = ((replay_time - create_time).total_seconds() / 3600)
+                if delta_hour < 24:
+                    issue_sla_count = issue_sla_count + 1
+
 
 
 def count_sla_by_repo(repo):
@@ -208,12 +230,10 @@ def generate_table_row(item, state):
     return row_str
 
 
-def send_email(emailhtml):
-    message = emails.html(subject=T('[Auto Notification]开源社区每日问题更新'),
-                          html=T(emailhtml),
-                          mail_from=('auto-reporter', conf['USERNAME']))
-    r = message.send(to=conf['TO'], mail_from=conf['USERNAME'], smtp=smtp_conf)
-    print(r)
+def generate_markdown_row(item):
+    mk_row = "> {} [{}]({}) {}\n\n"
+    return mk_row.format(item.repository.full_name, item.title if len(item.title) < 30 else (item.title[0:30] + "..."),
+                         item.html_url, str(item.created_at)[0:10])
 
 
 def generate_bug_report():
@@ -232,6 +252,31 @@ def generate_weekly_report():
     return html
 
 
+def generate_markdown_report():
+    for org_details in conf['orgs']:
+        org = github_client.get_organization(org_details['org'])
+        for repo in org.get_repos():
+            fetch_unhandled_issues_by_repo(repo)
+    markdown_string = ""
+    unhandled_number = 0
+    for item in summary:
+        try:
+            if item.repository.full_name == "AgoraIO/Agora-WordPress":
+                continue
+            unhandled_number += 1
+            if unhandled_number > 30:
+                continue
+            markdown_string += generate_markdown_row(item)
+        except Exception:
+            log.error("Failed to write summary")
+            continue
+    header = "#### For past last <font color=\"comment\">" + str(DAYS_BEFORE_TO_FETCH) + "</font> days\n"
+    header += "#### New Issues <font color=\"comment\">" + str(issue_total_count) + "</font>\n"
+    header += "#### Replied Issues in 24 hours <font color=\"comment\">" + str(issue_sla_count) + "</font>\n"
+    header += "#### Unhandled Issues <font color=\"comment\">" + str(unhandled_number) + "</font>:\n"
+    return header + markdown_string
+
+
 def append_header(state):
     header = "<table style='color:black;border:0;background-color: rgb(204, 204, " \
              "204);width=500px;line-height:20px' cellspacing='1' cellpadding='4'><tr " \
@@ -245,13 +290,6 @@ def append_header(state):
               "<th>description</th>" \
               "</tr>"
     return header
-
-
-smtp_conf = {'host': 'smtp.office365.com',
-             'user': conf['USERNAME'],
-             'password': conf['PASSWORD'],
-             'port': 587,
-             'tls': True}
 
 
 def reportCCRcount():

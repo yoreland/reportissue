@@ -3,7 +3,9 @@ import GithubManager
 from emails.template import JinjaTemplate as T
 import yaml
 import os
-
+import json
+import requests
+headers = {'Content-Type': 'application/json'}
 
 conf = None
 with open(os.path.dirname(os.path.realpath(__file__)) + '/github.cfg') as f:
@@ -16,13 +18,28 @@ smtp_conf = {'host': 'smtp.office365.com',
              'port': 587,
              'tls': True}
 
-
+#
 def send_email(emailhtml):
+    print(emailhtml)
     message = emails.html(subject=T('[Auto Notification]开源社区每日问题更新'),
                           html=T(emailhtml),
                           mail_from=('auto-reporter', conf['USERNAME']))
     r = message.send(to=conf['TO'], mail_from=conf['USERNAME'], smtp=smtp_conf)
     print(r)
+
+
+def send_wechat(markdownStr):
+    datas = "Github issue dialy report:\n> New Issues:8\n\n> Unhandled Issues:8\n\n| Repository  | Title  | Created Time  |\n|:----------|:----------|:----------|\n| AgoraIO/Agora-Flutter-SDK    | [SDK的example在iphone 8p上跑起来，占用存储空间有334MB](https://github.com/AgoraIO/Agora-Flutter-SDK/issues/286) | 2021-03-28 13\:02\:00    |"
+    datajson = {
+        "msgtype": "markdown",
+        "markdown": {
+            "content": datas
+        }
+    }
+    requestStr = json.dumps(datajson)
+    print(requestStr)
+    r = requests.post("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=ed05a5c1-3043-4107-89cd-5a412a197428", data=requestStr, headers=headers)
+    print(r.text)
 
 
 def generate_bug_report():
@@ -84,4 +101,5 @@ def generate_table_row(item, state):
 
 
 if __name__ == "__main__":
-    send_email(GithubManager.getHtmlSummary())
+#     send_email(GithubManager.getHtmlSummary())
+    send_wechat("")
