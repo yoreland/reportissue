@@ -78,9 +78,8 @@ def fetch_unhandled_issues_by_repo(repo):
                 summary.append(issue)
             if index > 0:
                 delta_hour = ((replay_time - create_time).total_seconds() / 3600)
-                if delta_hour < 24:
+                if delta_hour < 24 or create_time < since_date or issue.repository.full_name == "AgoraIO/Agora-WordPress":
                     issue_sla_count = issue_sla_count + 1
-
 
 
 def count_sla_by_repo(repo):

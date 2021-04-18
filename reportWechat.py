@@ -36,5 +36,5 @@ def test_notify():
 
 
 if __name__ == "__main__":
-    # send_wechat(GithubManager.generate_markdown_report())
-    test_notify()
+    send_wechat(GithubManager.generate_markdown_report())
+    # test_notify()
