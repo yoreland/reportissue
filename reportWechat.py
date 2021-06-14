@@ -16,25 +16,26 @@ def send_wechat(content):
     }
     request_string = json.dumps(datajson)
     # print(request_string)
-    r = requests.post("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=90329971-0f13-469f-80ef-49901c457f70"
-                      , data=request_string, headers=headers)
-    print(r.text)
+    # r = requests.post("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=90329971-0f13-469f-80ef-49901c457f70"
+    #                   , data=request_string, headers=headers)
+    # print(r.text)
 
 
 def test_notify():
+    content = GithubManager.repo_report()
     datajson = {
-        "msgtype": "text",
-        "text": {
-            "content": "测试消息，请忽略",
-            "mentioned_mobile_list": ["18616365805"]
+        "msgtype": "markdown",
+        "markdown": {
+            "content": content
         }
     }
     request_string = json.dumps(datajson)
-    r = requests.post("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=ed05a5c1-3043-4107-89cd-5a412a197428"
+    # print(request_string)
+    r = requests.post("https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=a4defae9-7d77-4071-80ca-1e6cc0a132cc"
                       , data=request_string, headers=headers)
     print(r.text)
 
 
 if __name__ == "__main__":
-    send_wechat(GithubManager.generate_markdown_report())
-    # test_notify()
+    # send_wechat(GithubManager.generate_markdown_report())
+    test_notify()

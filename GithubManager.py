@@ -7,6 +7,7 @@ import github
 import yaml
 import logging
 import os
+import time
 
 from emails.template import JinjaTemplate as T
 
@@ -20,7 +21,7 @@ github_client = github.Github(
     user_agent='agent')
 
 # consts
-DAYS_BEFORE_TO_FETCH = 7
+DAYS_BEFORE_TO_FETCH = 30
 
 # variants
 summary = []
@@ -34,6 +35,10 @@ issue_replied_count = 0
 issue_sla_count = 0
 issue_total_count = 0
 issue_sla_total_hour = 0
+repo_6m = []
+repo_1y = []
+repo_2y = []
+
 
 
 def filter_labels(res2):
@@ -99,8 +104,10 @@ def count_sla_by_repo(repo):
                 issue_total_count = issue_total_count + 1
                 delta_hour = ((replay_time - create_time).total_seconds() / 3600)
                 issue_sla_total_hour = issue_sla_total_hour + delta_hour
-                if delta_hour < 24:
+                if delta_hour < 24 or create_time < since_date or issue.repository.full_name == "AgoraIO/Agora-WordPress":
                     issue_sla_count = issue_sla_count + 1
+                else:
+                    print(issue.repository.full_name)
 
 
 def count_close_issues_by_repo(repo):
@@ -249,6 +256,37 @@ def generate_weekly_report():
     html += generate_summary(sort_issue(summary), "state")
     html += "</table>"
     return html
+
+
+def repo_report():
+    for org_details in conf['orgs']:
+        org = github_client.get_organization(org_details['org'])
+        since_6m = datetime.today() + timedelta(days=-180)
+        since_1y = datetime.today() + timedelta(days=-365)
+        since_2y = datetime.today() + timedelta(days=-730)
+        for repo in org.get_repos():
+            if repo.updated_at < since_2y:
+                repo_2y.append(repo.full_name)
+            else:
+                if repo.updated_at < since_1y:
+                    repo_1y.append(repo.full_name)
+                else:
+                    if repo.updated_at < since_6m:
+                        repo_6m.append(repo.full_name)
+    markdown = ""
+    markdown += "## updated since 2 years:\n"
+    for item in repo_2y:
+        markdown += item
+        markdown += "\n"
+    markdown += "## updated since 1 year:\n"
+    for item in repo_1y:
+        markdown += item
+        markdown += "\n"
+    markdown += "## updated since 6 months:\n"
+    for item in repo_6m:
+        markdown += item
+        markdown += "\n"
+    return markdown
 
 
 def generate_markdown_report():
